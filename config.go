@@ -14,6 +14,7 @@ type Config struct {
 	APIUrl   string
 	APIToken string
 	Port     string
+	Daemon   bool
 }
 
 // LoadConfig loads configuration from environment variables
@@ -37,5 +38,6 @@ func LoadConfig() *Config {
 		APIUrl:   apiURL,
 		APIToken: apiToken,
 		Port:     port,
+		Daemon:   os.Getenv("DAEMON") == "true",
 	}
 }

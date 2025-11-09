@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -73,12 +72,26 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	unreadFilter := &c.Filter{
 		Status: c.EntryStatusUnread,
 	}
+	processed, errors, entries := s.Process(unreadFilter)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"processed": processed,
+		"errors":    errors,
+		"total":     entries,
+	}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 
 	entries, err := s.client.Entries(unreadFilter)
 	if err != nil {
 		log.Printf("Error fetching entries: %v", err)
-		http.Error(w, fmt.Sprintf("Error fetching entries: %v", err), http.StatusInternalServerError)
-		return
+		// http.Error(w, fmt.Sprintf("Error fetching entries: %v", err), http.StatusInternalServerError)
+		return 0, 0, 0
 	}
 
 	processed := 0
@@ -103,13 +116,5 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Processing complete: %d processed, %d errors", processed, errors)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"processed": processed,
-		"errors":    errors,
-		"total":     len(entries.Entries),
-	}); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	return processed, errors, len(entries.Entries)
 }

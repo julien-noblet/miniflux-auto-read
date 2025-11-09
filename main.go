@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	c "miniflux.app/v2/client"
 )
 
 func main() {
@@ -23,11 +25,22 @@ func main() {
 	// Start server in background
 	go Start(httpServer)
 
+	// If --daemon isn't set, processEntriesHandler will be called once before shutdown
+	if !config.Daemon {
+
+		s := NewServer(config)
+		// Call processEntriesHandler
+		s.Process(&c.Filter{
+			Status: c.EntryStatusUnread,
+		})
+
+		Shutdown(httpServer, 30*time.Second)
+		return
+	}
 	// Wait for shutdown signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	// Gracefully shutdown the server
 	Shutdown(httpServer, 30*time.Second)
 }
