@@ -1,0 +1,38 @@
+# Dockerignore file for miniflux-auto-read
+
+# Git files
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# Build artifacts
+miniflux-auto-read
+main
+
+# Go test files
+*_test.go
+*.test
+*.out
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# CI/CD
+.github/
