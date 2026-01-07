@@ -1,2 +1,4 @@
 miniflux.app/v2 v2.2.14 h1:dU5nVpiW9xWJMsRYvd297yodKEdZW4hnzIrFEVY9zps=
 miniflux.app/v2 v2.2.14/go.mod h1:84rpT/NN/1vcClVlQ90JVcVBcqefKqY2oN+fbbwSCCQ=
+miniflux.app/v2 v2.2.16 h1:1BjRC34dCAqWQ8gyQUB6YZmiZa/zyxcASxtTUniAbcs=
+miniflux.app/v2 v2.2.16/go.mod h1:ewlbgrFlT/RjK3efhFzwjJUCJmmxQJ45Rb9MdN5+DSs=
