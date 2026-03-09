@@ -39,12 +39,12 @@ func TestServerInternal(t *testing.T) {
 	t.Run("StartShutdown", func(t *testing.T) {
 		mux := http.NewServeMux()
 		srv := NewHTTPServer("9001", mux)
-		
+
 		go Start(srv)
-		
+
 		// Give it a moment to start
 		time.Sleep(100 * time.Millisecond)
-		
+
 		Shutdown(srv, 5*time.Second)
 	})
 }

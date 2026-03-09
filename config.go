@@ -1,3 +1,4 @@
+// Package main provides the miniflux-auto-read service.
 package main
 
 import (

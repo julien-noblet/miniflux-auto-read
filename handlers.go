@@ -27,7 +27,7 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Health check failed: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "unhealthy",
 			"message": "Cannot connect to Miniflux API",
 			"error":   err.Error(),
@@ -39,7 +39,7 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	case <-ctx.Done():
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "unhealthy",
 			"message": "Health check timeout",
 		})
@@ -47,7 +47,7 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "healthy",
 			"timestamp": time.Now().Format(time.RFC3339),
 		})
@@ -70,13 +70,14 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"processed": processed,
 		"errors":    errors,
 		"total":     entries,
 	})
 }
 
+// Process retrieves unread entries and processes them.
 func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 	entries, err := s.client.Entries(unreadFilter)
 	if err != nil {

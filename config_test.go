@@ -23,7 +23,7 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("Missing variables", func(t *testing.T) {
 		os.Unsetenv("MINIFLUX_API_URL")
 		os.Unsetenv("MINIFLUX_API_TOKEN")
-		
+
 		config, err := LoadConfig()
 		assert.Error(t, err)
 		assert.Nil(t, config)
