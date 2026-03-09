@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 )
@@ -18,12 +19,12 @@ type Config struct {
 }
 
 // LoadConfig loads configuration from environment variables
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	apiURL := os.Getenv("MINIFLUX_API_URL")
 	apiToken := os.Getenv("MINIFLUX_API_TOKEN")
 
 	if apiURL == "" || apiToken == "" {
-		log.Fatal("MINIFLUX_API_URL and MINIFLUX_API_TOKEN must be set")
+		return nil, errors.New("MINIFLUX_API_URL and MINIFLUX_API_TOKEN must be set")
 	}
 
 	port := os.Getenv("PORT")
@@ -39,5 +40,5 @@ func LoadConfig() *Config {
 		APIToken: apiToken,
 		Port:     port,
 		Daemon:   os.Getenv("DAEMON") == "true",
-	}
+	}, nil
 }

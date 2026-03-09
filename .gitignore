@@ -1,3 +1,4 @@
 .env
 
 miniflux_automator
+coverage.out

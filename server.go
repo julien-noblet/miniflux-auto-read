@@ -9,11 +9,19 @@ import (
 	c "miniflux.app/v2/client"
 )
 
+// MinifluxClient defines the interface for Miniflux API interactions
+type MinifluxClient interface {
+	Me() (*c.User, error)
+	Entries(filter *c.Filter) (*c.EntryResultSet, error)
+	UpdateEntries(entryIDs []int64, status string) error
+	SaveEntry(entryID int64) error
+}
+
 // Server represents the HTTP server with Miniflux client
 type Server struct {
 	apiURL   string
 	apiToken string
-	client   *c.Client
+	client   MinifluxClient
 }
 
 // NewServer creates a new server instance

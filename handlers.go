@@ -27,13 +27,11 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Health check failed: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "unhealthy",
 			"message": "Cannot connect to Miniflux API",
 			"error":   err.Error(),
-		}); err != nil {
-			log.Printf("Error encoding response: %v", err)
-		}
+		})
 		return
 	}
 
@@ -41,22 +39,18 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	case <-ctx.Done():
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "unhealthy",
 			"message": "Health check timeout",
-		}); err != nil {
-			log.Printf("Error encoding response: %v", err)
-		}
+		})
 		return
 	default:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "healthy",
 			"timestamp": time.Now().Format(time.RFC3339),
-		}); err != nil {
-			log.Printf("Error encoding response: %v", err)
-		}
+		})
 	}
 }
 
@@ -76,17 +70,14 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"processed": processed,
 		"errors":    errors,
 		"total":     entries,
-	}); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	})
 }
 
 func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
-
 	entries, err := s.client.Entries(unreadFilter)
 	if err != nil {
 		log.Printf("Error fetching entries: %v", err)

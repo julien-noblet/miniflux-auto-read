@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,8 +11,18 @@ import (
 )
 
 func main() {
+	if err := Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Run executes the application logic
+func Run() error {
 	// Load configuration
-	config := LoadConfig()
+	config, err := LoadConfig()
+	if err != nil {
+		return err
+	}
 
 	// Create server
 	server := NewServer(config)
@@ -27,15 +38,13 @@ func main() {
 
 	// If --daemon isn't set, processEntriesHandler will be called once before shutdown
 	if !config.Daemon {
-
-		s := NewServer(config)
 		// Call processEntriesHandler
-		s.Process(&c.Filter{
+		server.Process(&c.Filter{
 			Status: c.EntryStatusUnread,
 		})
 
 		Shutdown(httpServer, 30*time.Second)
-		return
+		return nil
 	}
 	// Wait for shutdown signal
 	quit := make(chan os.Signal, 1)
@@ -43,4 +52,5 @@ func main() {
 	<-quit
 
 	Shutdown(httpServer, 30*time.Second)
+	return nil
 }
