@@ -4,10 +4,44 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	c "miniflux.app/v2/client"
 )
+
+// ResponseWriter is a wrapper around http.ResponseWriter to capture the status code
+type ResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+// NewResponseWriter creates a new ResponseWriter
+func NewResponseWriter(w http.ResponseWriter) *ResponseWriter {
+	return &ResponseWriter{w, http.StatusOK}
+}
+
+// WriteHeader captures the status code
+func (rw *ResponseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+// prometheusMiddleware measures the duration and status of HTTP requests
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rw := NewResponseWriter(w)
+		next.ServeHTTP(rw, r)
+
+		duration := time.Since(start).Seconds()
+		status := strconv.Itoa(rw.statusCode)
+
+		HTTPRequestsTotal.WithLabelValues(r.Method, r.URL.Path, status).Inc()
+		HTTPRequestDurationSeconds.WithLabelValues(r.Method, r.URL.Path, status).Observe(duration)
+	})
+}
 
 // MinifluxClient defines the interface for Miniflux API interactions
 type MinifluxClient interface {
@@ -36,11 +70,12 @@ func NewServer(config *Config) *Server {
 }
 
 // SetupRoutes configures the HTTP routes
-func (s *Server) SetupRoutes() *http.ServeMux {
+func (s *Server) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.healthzHandler)
 	mux.HandleFunc("/process", s.processEntriesHandler)
-	return mux
+	mux.Handle("/metrics", promhttp.Handler())
+	return prometheusMiddleware(mux)
 }
 
 // NewHTTPServer creates and configures the HTTP server

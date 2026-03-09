@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	c "miniflux.app/v2/client"
 )
 
@@ -62,11 +63,15 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Processing unread entries...")
+	timer := prometheus.NewTimer(ProcessDurationSeconds)
+	defer timer.ObserveDuration()
 
 	unreadFilter := &c.Filter{
 		Status: c.EntryStatusUnread,
 	}
 	processed, errors, entries := s.Process(unreadFilter)
+
+	EntriesProcessedTotal.Add(float64(processed))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -79,10 +84,12 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 
 // Process retrieves unread entries and processes them.
 func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
+	start := time.Now()
 	entries, err := s.client.Entries(unreadFilter)
+	MinifluxAPIDurationSeconds.WithLabelValues("entries").Observe(time.Since(start).Seconds())
 	if err != nil {
 		log.Printf("Error fetching entries: %v", err)
-		// http.Error(w, fmt.Sprintf("Error fetching entries: %v", err), http.StatusInternalServerError)
+		EntriesProcessingErrorsTotal.WithLabelValues("fetch_entries").Inc()
 		return 0, 0, 0
 	}
 
@@ -91,14 +98,22 @@ func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 
 	for _, entry := range entries.Entries {
 		log.Printf("Saving entry %d: %s", entry.ID, entry.Title)
-		if err := s.client.SaveEntry(entry.ID); err != nil {
+		startSave := time.Now()
+		err := s.client.SaveEntry(entry.ID)
+		MinifluxAPIDurationSeconds.WithLabelValues("save_entry").Observe(time.Since(startSave).Seconds())
+		if err != nil {
 			log.Printf("Error saving entry %d: %v", entry.ID, err)
+			EntriesProcessingErrorsTotal.WithLabelValues("save_entry").Inc()
 			errors++
 			continue
 		}
 
-		if err := s.client.UpdateEntries([]int64{entry.ID}, c.EntryStatusRead); err != nil {
+		startUpdate := time.Now()
+		err = s.client.UpdateEntries([]int64{entry.ID}, c.EntryStatusRead)
+		MinifluxAPIDurationSeconds.WithLabelValues("update_entries").Observe(time.Since(startUpdate).Seconds())
+		if err != nil {
 			log.Printf("Error marking entry %d as read: %v", entry.ID, err)
+			EntriesProcessingErrorsTotal.WithLabelValues("mark_read").Inc()
 			errors++
 			continue
 		}
