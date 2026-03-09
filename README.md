@@ -10,12 +10,16 @@ Miniflux Auto Read is a companion service for [Miniflux](https://miniflux.app) t
 
 ## Features
 
-- 🚀 Simple HTTP API with two endpoints
+- 🚀 Simple HTTP API with three endpoints
 - ✅ Health check endpoint for monitoring
 - 📖 Bulk process unread entries with one API call
 - 🔒 Secure configuration via environment variables
+- 📊 Metrics for Prometheus (at `/metrics`)
+- 🤖 Daemon mode for continuous operation
 - 📊 Detailed logging and error reporting
-- ⚡ Fast and lightweight (written in Go)
+- ⚡ Fast and lightweight (written in Go 1.26 with PGO optimization)
+- 🐳 Ultra-minimal Docker image (~5MB) based on `scratch`
+- 🔒 Secure by default: runs as non-root user in container
 
 ## Installation
 
@@ -24,8 +28,23 @@ Miniflux Auto Read is a companion service for [Miniflux](https://miniflux.app) t
 ```bash
 git clone https://github.com/julien-noblet/miniflux-auto-read.git
 cd miniflux-auto-read
-go build
+go build -pgo=auto -trimpath -ldflags="-s -w"
 ```
+
+### Using Docker
+
+The project provides an ultra-optimized image (multi-platform `amd64`/`arm64`) leveraging **Go 1.26** with **PGO (Profile Guided Optimization)** for maximum performance.
+
+```bash
+docker run -d \
+  --name miniflux-auto-read \
+  -e MINIFLUX_API_URL="https://miniflux.example.com" \
+  -e MINIFLUX_API_TOKEN="your-token" \
+  -p 8080:8080 \
+  ghcr.io/julien-noblet/miniflux-auto-read:latest
+```
+
+The image is built on `scratch` for a minimal footprint (~5MB) and runs as a non-root user (UID 10001).
 
 ### Using Go Install
 
@@ -42,6 +61,7 @@ The service is configured entirely through environment variables:
 | `MINIFLUX_API_URL` | Yes | - | Your Miniflux instance URL (e.g., `https://miniflux.example.com`) |
 | `MINIFLUX_API_TOKEN` | Yes | - | Your Miniflux API token |
 | `PORT` | No | `8080` | HTTP server port |
+| `DAEMON` | No | `false` | If set to `true`, the service stays running after processing. If `false`, it processes once and exits. |
 
 ### Getting Your API Token
 
@@ -96,6 +116,20 @@ curl -X POST http://localhost:8080/process
   "total": 42
 }
 ```
+
+#### Metrics
+
+The service exports Prometheus metrics at `/metrics`:
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+**Common Metrics:**
+- `miniflux_entries_processed_total`: Total number of entries processed.
+- `miniflux_entries_processing_duration_seconds`: Time taken to process entries.
+- `http_requests_total`: Total number of HTTP requests.
+- `miniflux_api_duration_seconds`: Duration of calls to the Miniflux API.
 
 ## Automation
 
@@ -226,8 +260,8 @@ If you encounter any issues or have questions:
 
 ## Roadmap
 
-- [ ] Docker image on Docker Hub
+- [ ] Docker image on github container registry
 - [ ] Configurable scheduling (built-in cron)
-- [ ] Prometheus metrics endpoint
+- [X] Prometheus metrics endpoint
 - [ ] Filter entries by feed or category
 - [ ] Web UI for manual triggering

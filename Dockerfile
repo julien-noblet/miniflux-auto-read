@@ -1,8 +1,11 @@
-# Build stage
-FROM golang:1.25-alpine AS builder
+# Stage 1: Build
+FROM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates
+
+# Create a non-root user
+RUN adduser -D -g '' -u 10001 appuser
 
 WORKDIR /build
 
@@ -15,28 +18,43 @@ RUN go mod download && go mod verify
 # Copy source code
 COPY . .
 
-# Build the application with optimizations
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags '-extldflags "-static" -s -w' \
+# Build the application with optimizations:
+# -pgo=auto: Use default.pgo if available for profile-guided optimization
+# -trimpath: Remove local file system paths from the binary
+# -ldflags: -s -w removes symbol table and debug information
+# GOAMD64=v3: Use modern CPU instructions (AVX/AVX2) for amd64
+RUN if [ "$(go env GOARCH)" = "amd64" ]; then export GOAMD64=v3; fi && \
+    CGO_ENABLED=0 GOOS=linux go build \
+    -pgo=auto \
+    -trimpath \
+    -ldflags="-s -w" \
     -o miniflux-auto-read .
 
-# Final stage - using scratch for minimal image size
+# Stage 2: Final minimal image
 FROM scratch
 
-# Copy CA certificates for HTTPS requests to Miniflux API
+# Copy CA certificates for HTTPS requests
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy non-root user info
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
 
 # Copy the binary
 COPY --from=builder /build/miniflux-auto-read /miniflux-auto-read
 
+# Use non-root user
+USER 10001:10001
+
 # Expose port
 EXPOSE 8080
 
-# Set default environment
-ENV PORT=8080
-
-# Run as non-root would require adding user in scratch, so we skip it
-# The application doesn't require root privileges
+# Performance tuning for Go runtime in containers
+# GOMEMLIMIT: Reserve 10% for overhead (should be adjusted via env in production)
+# GOGC: Balanced approach
+ENV GOMEMLIMIT=128MiB \
+    GOGC=100 \
+    PORT=8080
 
 # Run the application
 ENTRYPOINT ["/miniflux-auto-read"]

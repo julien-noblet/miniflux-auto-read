@@ -25,6 +25,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26'
+
+    - name: Generate PGO profile from tests
+      run: go test -cpuprofile default.pgo ./...
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 

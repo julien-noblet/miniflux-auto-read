@@ -2,3 +2,6 @@
 
 miniflux_automator
 coverage.out
+*.prof
+default.pgo
+miniflux_automator.test
