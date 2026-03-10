@@ -62,7 +62,7 @@ The service is configured entirely through environment variables:
 | `MINIFLUX_API_TOKEN` | Yes | - | Your Miniflux API token |
 | `PORT` | No | `8080` | HTTP server port |
 | `DAEMON` | No | `false` | If set to `true`, the service stays running after processing. If `false`, it processes once and exits. |
-| `CRON_SCHEDULE` | No | - | Standard Crontab expression (e.g., `0 * * * *`). Only active if `DAEMON` is `true`. |
+| `CRON_SCHEDULE` | No | - | Standard Crontab expression interpreted in **UTC** (e.g., `0 * * * *` for the top of every hour in UTC). Only active if `DAEMON` is `true`. |
 
 ### Getting Your API Token
 
