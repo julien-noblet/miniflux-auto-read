@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/robfig/cron/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	c "miniflux.app/v2/client"
 )
 
@@ -36,7 +36,7 @@ func TestCronScheduling(t *testing.T) {
 		server.Process(&c.Filter{Status: c.EntryStatusUnread})
 		triggered <- true
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	scheduler.Start()
 	defer scheduler.Stop()
@@ -53,7 +53,7 @@ func TestCronScheduling(t *testing.T) {
 func TestCronInvalidSchedule(t *testing.T) {
 	scheduler := cron.New()
 	_, err := scheduler.AddFunc("invalid-schedule", func() {})
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestCronValidSchedule(t *testing.T) {
@@ -61,13 +61,13 @@ func TestCronValidSchedule(t *testing.T) {
 	
 	// Test standard format
 	_, err := scheduler.AddFunc("*/15 * * * *", func() {})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test comma format: 0,5 * * * *
 	_, err = scheduler.AddFunc("0,5 * * * *", func() {})
-	assert.NoError(t, err, "Should support commas in cron schedule")
+	require.NoError(t, err, "Should support commas in cron schedule")
 
 	// Test increment/step format: 0/10 * * * *
 	_, err = scheduler.AddFunc("0/10 * * * *", func() {})
-	assert.NoError(t, err, "Should support step/increment (/) in cron schedule")
+	require.NoError(t, err, "Should support step/increment (/) in cron schedule")
 }

@@ -50,8 +50,8 @@ func Run() error {
 
 	// Setup Cron Scheduler if CRON_SCHEDULE is defined
 	if config.CronSchedule != "" {
-		jakartaLocation, _ := time.LoadLocation("UTC")
-		scheduler := cron.New(cron.WithLocation(jakartaLocation))
+		utcLocation := time.UTC
+		scheduler := cron.New(cron.WithLocation(utcLocation))
 		_, err := scheduler.AddFunc(config.CronSchedule, func() {
 			log.Printf("Cron job triggered: %s", config.CronSchedule)
 			server.Process(&c.Filter{
