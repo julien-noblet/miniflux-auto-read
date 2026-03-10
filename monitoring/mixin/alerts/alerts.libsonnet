@@ -8,7 +8,7 @@ local config = import '../config.libsonnet';
         rules: [
           {
             alert: 'MinifluxProcessingErrorsHigh',
-            expr: 'sum(rate(miniflux_entries_processing_errors_total{%(_config)s}[5m])) > 0' % config,
+            expr: 'sum(rate(miniflux_entries_processing_errors_total{%(minifluxAutoReadSelector)s}[5m])) > 0' % config._config,
             'for': '5m',
             labels: {
               severity: 'warning',
@@ -20,7 +20,7 @@ local config = import '../config.libsonnet';
           },
           {
             alert: 'MinifluxHighLatency',
-            expr: 'histogram_quantile(0.95, sum(rate(miniflux_api_duration_seconds_bucket{%(_config)s}[5m])) by (le)) > 2' % config,
+            expr: 'histogram_quantile(0.95, sum(rate(miniflux_api_duration_seconds_bucket{%(minifluxAutoReadSelector)s}[5m])) by (le)) > 2' % config._config,
             'for': '10m',
             labels: {
               severity: 'warning',
