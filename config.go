@@ -33,7 +33,6 @@ func LoadConfig() (*Config, error) {
 		port = defaultPort
 	}
 
-	log.Printf("Using Miniflux API URL: %s", apiURL)
 	log.Println("API token configured")
 
 	return &Config{

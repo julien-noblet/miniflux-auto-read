@@ -91,7 +91,7 @@ func NewHTTPServer(port string, handler http.Handler) *http.Server {
 
 // Start starts the HTTP server
 func Start(server *http.Server) {
-	log.Printf("Server starting on port %s", server.Addr)
+	log.Println("Server starting")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed to start: %v", err)
 	}

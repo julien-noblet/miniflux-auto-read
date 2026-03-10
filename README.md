@@ -143,31 +143,18 @@ Add to your crontab to run every hour:
 
 ### Docker
 
-```dockerfile
-FROM golang:1.25-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go build -o miniflux-auto-read
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/miniflux-auto-read .
-EXPOSE 8080
-CMD ["./miniflux-auto-read"]
-```
-
-Run with Docker:
+The project provides an ultra-optimized image (multi-platform `amd64`/`arm64`) leveraging **Go 1.26** with **PGO (Profile Guided Optimization)** for maximum performance.
 
 ```bash
-docker build -t miniflux-auto-read .
 docker run -d \
-  -p 8080:8080 \
+  --name miniflux-auto-read \
   -e MINIFLUX_API_URL="https://miniflux.example.com" \
   -e MINIFLUX_API_TOKEN="your-token" \
-  --name miniflux-auto-read \
-  miniflux-auto-read
+  -p 8080:8080 \
+  ghcr.io/julien-noblet/miniflux-auto-read:latest
 ```
+
+The image is built on `scratch` for a minimal footprint (~5MB) and runs as a non-root user (UID 10001).
 
 ### systemd Service
 

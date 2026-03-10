@@ -36,7 +36,7 @@ func TestServerInternal(t *testing.T) {
 		assert.Equal(t, 15*time.Second, srv.ReadTimeout)
 	})
 
-	t.Run("StartShutdown", func(t *testing.T) {
+	t.Run("StartShutdown", func(_ *testing.T) {
 		mux := http.NewServeMux()
 		srv := NewHTTPServer("9001", mux)
 

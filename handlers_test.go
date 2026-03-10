@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	c "miniflux.app/v2/client"
 )
 
@@ -49,7 +50,7 @@ func TestHealthzHandler(t *testing.T) {
 		mockClient.On("Me").Return(&c.User{ID: 1}, nil)
 
 		s := &Server{client: mockClient}
-		req, _ := http.NewRequest("GET", "/healthz", nil)
+		req := httptest.NewRequestWithContext(t.Context(), "GET", "/healthz", nil)
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(s.healthzHandler)
 
@@ -58,7 +59,7 @@ func TestHealthzHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		var response map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "healthy", response["status"])
 	})
 
@@ -67,7 +68,7 @@ func TestHealthzHandler(t *testing.T) {
 		mockClient.On("Me").Return(nil, errors.New("api error"))
 
 		s := &Server{client: mockClient}
-		req, _ := http.NewRequest("GET", "/healthz", nil)
+		req := httptest.NewRequestWithContext(t.Context(), "GET", "/healthz", nil)
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(s.healthzHandler)
 
@@ -76,13 +77,13 @@ func TestHealthzHandler(t *testing.T) {
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 		var response map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "unhealthy", response["status"])
 	})
 
 	t.Run("Method Not Allowed", func(t *testing.T) {
 		s := &Server{}
-		req, _ := http.NewRequest("POST", "/healthz", nil)
+		req := httptest.NewRequestWithContext(t.Context(), "POST", "/healthz", nil)
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(s.healthzHandler)
 
@@ -108,7 +109,7 @@ func TestProcessEntriesHandler(t *testing.T) {
 		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).Return(nil)
 
 		s := &Server{client: mockClient}
-		req, _ := http.NewRequest("POST", "/process", nil)
+		req := httptest.NewRequestWithContext(t.Context(), "POST", "/process", nil)
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(s.processEntriesHandler)
 
@@ -117,15 +118,15 @@ func TestProcessEntriesHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		var response map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, float64(1), response["processed"])
-		assert.Equal(t, float64(0), response["errors"])
-		assert.Equal(t, float64(1), response["total"])
+		require.NoError(t, err)
+		assert.InDelta(t, float64(1), response["processed"], 0.01)
+		assert.InDelta(t, float64(0), response["errors"], 0.01)
+		assert.InDelta(t, float64(1), response["total"], 0.01)
 	})
 
 	t.Run("Method Not Allowed", func(t *testing.T) {
 		s := &Server{}
-		req, _ := http.NewRequest("GET", "/process", nil)
+		req := httptest.NewRequestWithContext(t.Context(), "GET", "/process", nil)
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(s.processEntriesHandler)
 
@@ -173,7 +174,8 @@ func TestProcess(t *testing.T) {
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
 		mockClient.On("SaveEntry", int64(1)).Return(nil)
-		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).Return(errors.New("update error")).Maybe() // IDs might differ in actual code call
+		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).
+			Return(errors.New("update error")).Maybe()
 		// Correcting expectation for UpdateEntries:
 		mockClient.On("UpdateEntries", []int64{1}, c.EntryStatusRead).Return(errors.New("update error"))
 
