@@ -70,4 +70,25 @@ func TestLoadConfig(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, config.CronSchedule)
 	})
+
+	t.Run("Whitespace-only cron schedule treated as unset", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Setenv("CRON_SCHEDULE", "   ")
+
+		config, err := LoadConfig()
+		require.NoError(t, err)
+		assert.Empty(t, config.CronSchedule)
+	})
+
+	t.Run("Invalid cron schedule returns error", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Setenv("CRON_SCHEDULE", "not-a-valid-cron")
+
+		config, err := LoadConfig()
+		require.Error(t, err)
+		assert.Nil(t, config)
+		assert.Contains(t, err.Error(), "invalid CRON_SCHEDULE")
+	})
 }

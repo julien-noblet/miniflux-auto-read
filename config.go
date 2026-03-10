@@ -5,6 +5,9 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
+
+	"github.com/robfig/cron/v3"
 )
 
 const (
@@ -34,7 +37,13 @@ func LoadConfig() (*Config, error) {
 		port = defaultPort
 	}
 
-	cronSchedule := os.Getenv("CRON_SCHEDULE")
+	cronSchedule := strings.TrimSpace(os.Getenv("CRON_SCHEDULE"))
+	if cronSchedule != "" {
+		parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+		if _, err := parser.Parse(cronSchedule); err != nil {
+			return nil, errors.New("invalid CRON_SCHEDULE: " + err.Error())
+		}
+	}
 
 	log.Println("API token configured")
 
