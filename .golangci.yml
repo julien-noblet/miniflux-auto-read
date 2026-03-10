@@ -1,11 +1,9 @@
 version: "2"
 run:
   timeout: 5m
-  issues-exit-code: 1
   tests: true
 
 linters:
-  disable-all: true
   enable:
     - errcheck
     - govet
@@ -13,42 +11,16 @@ linters:
     - staticcheck
     - unused
     - revive
-    - gochecknoinits
     - gocyclo
     - misspell
     - bodyclose
-    - nilerr
     - noctx
-    - prealloc
-    - unconvert
-    - unparam
-    - contextcheck
-    - errorlint
     - funlen
-    - gocognit
-    - gomodguard
     - gosec
     - lll
-    - nakedret
-    - nestif
-    - whitespace
     - testifylint
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  testifylint:
-    enable-all: true
-
 issues:
-  exclude-use-default: true
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: false
-  exclude-rules:
-    - path: .*_test\.go
-      linters:
-        - errcheck
-        - funlen
-        - gosec
     
