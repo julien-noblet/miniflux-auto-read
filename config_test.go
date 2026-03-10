@@ -14,11 +14,13 @@ func TestLoadConfig(t *testing.T) {
 	origToken := os.Getenv("MINIFLUX_API_TOKEN")
 	origPort := os.Getenv("PORT")
 	origDaemon := os.Getenv("DAEMON")
+	origCron := os.Getenv("CRON_SCHEDULE")
 	defer func() {
 		_ = os.Setenv("MINIFLUX_API_URL", origURL)
 		_ = os.Setenv("MINIFLUX_API_TOKEN", origToken)
 		_ = os.Setenv("PORT", origPort)
 		_ = os.Setenv("DAEMON", origDaemon)
+		_ = os.Setenv("CRON_SCHEDULE", origCron)
 	}()
 
 	t.Run("Missing variables", func(t *testing.T) {
@@ -49,11 +51,23 @@ func TestLoadConfig(t *testing.T) {
 		_ = os.Setenv("MINIFLUX_API_TOKEN", "another-token")
 		_ = os.Setenv("PORT", "9090")
 		_ = os.Setenv("DAEMON", "true")
+		_ = os.Setenv("CRON_SCHEDULE", "*/15 * * * *")
 
 		config, err := LoadConfig()
 		require.NoError(t, err)
 		assert.Equal(t, "http://miniflux.example.com", config.APIUrl)
 		assert.Equal(t, "9090", config.Port)
 		assert.True(t, config.Daemon)
+		assert.Equal(t, "*/15 * * * *", config.CronSchedule)
+	})
+
+	t.Run("Empty cron schedule", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Unsetenv("CRON_SCHEDULE")
+
+		config, err := LoadConfig()
+		require.NoError(t, err)
+		assert.Empty(t, config.CronSchedule)
 	})
 }

@@ -13,10 +13,11 @@ const (
 
 // Config holds the application configuration.
 type Config struct {
-	APIUrl   string
-	APIToken string
-	Port     string
-	Daemon   bool
+	APIUrl       string
+	APIToken     string
+	Port         string
+	Daemon       bool
+	CronSchedule string
 }
 
 // LoadConfig loads configuration from environment variables.
@@ -33,12 +34,15 @@ func LoadConfig() (*Config, error) {
 		port = defaultPort
 	}
 
+	cronSchedule := os.Getenv("CRON_SCHEDULE")
+
 	log.Println("API token configured")
 
 	return &Config{
-		APIUrl:   apiURL,
-		APIToken: apiToken,
-		Port:     port,
-		Daemon:   os.Getenv("DAEMON") == "true",
+		APIUrl:       apiURL,
+		APIToken:     apiToken,
+		Port:         port,
+		Daemon:       os.Getenv("DAEMON") == "true",
+		CronSchedule: cronSchedule,
 	}, nil
 }

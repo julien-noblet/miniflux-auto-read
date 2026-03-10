@@ -62,6 +62,7 @@ The service is configured entirely through environment variables:
 | `MINIFLUX_API_TOKEN` | Yes | - | Your Miniflux API token |
 | `PORT` | No | `8080` | HTTP server port |
 | `DAEMON` | No | `false` | If set to `true`, the service stays running after processing. If `false`, it processes once and exits. |
+| `CRON_SCHEDULE` | No | - | Standard Crontab expression (e.g., `0 * * * *`). Only active if `DAEMON` is `true`. |
 
 ### Getting Your API Token
 
@@ -248,7 +249,7 @@ If you encounter any issues or have questions:
 ## Roadmap
 
 - [X] Docker image on github container registry
-- [ ] Configurable scheduling (built-in cron)
+- [X] Configurable scheduling (built-in cron)
 - [X] Prometheus metrics endpoint
 - [ ] Filter entries by feed or category
 - [ ] Web UI for manual triggering

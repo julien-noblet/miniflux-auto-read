@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	c "miniflux.app/v2/client"
 )
 
@@ -46,6 +47,25 @@ func Run() error {
 		Shutdown(httpServer, 30*time.Second)
 		return nil
 	}
+
+	// Setup Cron Scheduler if CRON_SCHEDULE is defined
+	if config.CronSchedule != "" {
+		jakartaLocation, _ := time.LoadLocation("UTC")
+		scheduler := cron.New(cron.WithLocation(jakartaLocation))
+		_, err := scheduler.AddFunc(config.CronSchedule, func() {
+			log.Printf("Cron job triggered: %s", config.CronSchedule)
+			server.Process(&c.Filter{
+				Status: c.EntryStatusUnread,
+			})
+		})
+		if err != nil {
+			return err
+		}
+		scheduler.Start()
+		defer scheduler.Stop()
+		log.Printf("Cron scheduler started with schedule: %s", config.CronSchedule)
+	}
+
 	// Wait for shutdown signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
