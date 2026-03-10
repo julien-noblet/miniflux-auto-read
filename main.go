@@ -61,7 +61,7 @@ func Run() error {
 			})
 		})
 		if err != nil {
-			return fmt.Errorf("invalid CRON_SCHEDULE %q: %w", config.CronSchedule, err)
+			return fmt.Errorf("failed to add cron job with CRON_SCHEDULE %q: %w", config.CronSchedule, err)
 		}
 		scheduler.Start()
 		log.Printf("Cron scheduler started with schedule: %s", config.CronSchedule)
