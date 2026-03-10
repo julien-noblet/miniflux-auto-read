@@ -21,8 +21,10 @@ COPY . .
 
 # Regenerate assets from Jsonnet mixin
 RUN mkdir -p assets && \
-    jsonnet -S monitoring/mixin/mixin.libsonnet | jq -r '.grafanaDashboards["miniflux-auto-read.json"]' > assets/dashboard.json && \
-    jsonnet -S monitoring/mixin/mixin.libsonnet | jq -r '.prometheusAlerts' | yq -P > assets/alerts.yaml
+    jsonnet -S monitoring/mixin/mixin.libsonnet > /tmp/mixin.json && \
+    jq -er '.grafanaDashboards["miniflux-auto-read.json"]' /tmp/mixin.json > assets/dashboard.json && \
+    jq -er '.prometheusAlerts' /tmp/mixin.json | yq -P > assets/alerts.yaml && \
+    rm /tmp/mixin.json
 
 # Build the application with optimizations:
 # -pgo=auto: Use default.pgo if available for profile-guided optimization
