@@ -139,10 +139,14 @@ The service embeds its own monitoring assets, generated from a [Jsonnet mixin](m
 - **Grafana Dashboard**: `http://localhost:8080/dashboard.json` (Ready to import)
 - **Prometheus Alerts**: `http://localhost:8080/alerts.yaml` (Pre-configured alert rules)
 
-Those assets are generated during the docker build process and served by the application, ensuring they are always in sync with the current version of the service. To generate or update the monitoring assets locally, you can use the `jsonnet` CLI:
+Those assets are generated during the docker build process and served by the application, ensuring they are always in sync with the current version of the service. To generate or update the monitoring assets locally, you can use the following commands:
 
 ```bash
-jsonnet -J monitoring/mixin/ monitoring/mixin/mixin.libsonnet -o assets
+# Generate dashboard.json
+jsonnet monitoring/mixin/mixin.libsonnet | jq -r '.grafanaDashboards["miniflux-auto-read.json"]' > assets/dashboard.json
+
+# Generate alerts.yaml
+jsonnet monitoring/mixin/mixin.libsonnet | jq -r '.prometheusAlerts' | yq -P > assets/alerts.yaml
 ```
 
 ## Automation

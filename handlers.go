@@ -71,8 +71,6 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	processed, errors, entries := s.Process(unreadFilter)
 
-	EntriesProcessedTotal.Add(float64(processed))
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -130,6 +128,7 @@ func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 	}
 
 	log.Printf("Processing complete: %d processed, %d errors", processed, errors)
+	EntriesProcessedTotal.Add(float64(processed))
 
 	return processed, errors, len(entries.Entries)
 }
