@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,6 +13,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	c "miniflux.app/v2/client"
 )
+
+//go:embed assets/*.json
+var dashboardAssets embed.FS
+
+//go:embed assets/*.yaml
+var alertsAssets embed.FS
 
 // ResponseWriter is a wrapper around http.ResponseWriter to capture the status code.
 type ResponseWriter struct {
@@ -77,6 +85,29 @@ func (s *Server) SetupRoutes() http.Handler {
 	mux.HandleFunc("/healthz", s.healthzHandler)
 	mux.HandleFunc("/process", s.processEntriesHandler)
 	mux.Handle("/metrics", promhttp.Handler())
+
+	// Expose Grafana dashboard JSON
+	assets, err := fs.Sub(dashboardAssets, "assets")
+	if err != nil {
+		log.Printf("failed to load dashboard assets: %v", err)
+		mux.HandleFunc("/dashboard.json", func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "dashboard assets unavailable", http.StatusInternalServerError)
+		})
+	} else {
+		mux.Handle("/dashboard.json", http.FileServer(http.FS(assets)))
+	}
+
+	// Expose Prometheus alerts YAML
+	alerts, err := fs.Sub(alertsAssets, "assets")
+	if err != nil {
+		log.Printf("failed to load alerts assets: %v", err)
+		mux.HandleFunc("/alerts.yaml", func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "alerts assets unavailable", http.StatusInternalServerError)
+		})
+	} else {
+		mux.Handle("/alerts.yaml", http.FileServer(http.FS(alerts)))
+	}
+
 	return prometheusMiddleware(mux)
 }
 

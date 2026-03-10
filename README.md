@@ -15,6 +15,7 @@ Miniflux Auto Read is a companion service for [Miniflux](https://miniflux.app) t
 - 📖 Bulk process unread entries with one API call
 - 🔒 Secure configuration via environment variables
 - 📊 Metrics for Prometheus (at `/metrics`)
+- 📈 Integrated Grafana Dashboard and Prometheus Alerts (provided by the service at `/dashboard.json` and `/alerts.yaml`)
 - 🤖 Daemon mode for continuous operation
 - 📊 Detailed logging and error reporting
 - ⚡ Fast and lightweight (written in Go 1.26 with PGO optimization)
@@ -131,6 +132,18 @@ curl http://localhost:8080/metrics
 - `miniflux_entries_processing_duration_seconds`: Time taken to process entries.
 - `http_requests_total`: Total number of HTTP requests.
 - `miniflux_api_duration_seconds`: Duration of calls to the Miniflux API.
+#### Monitoring as Code
+
+The service embeds its own monitoring assets, generated from a [Jsonnet mixin](monitoring/mixin/):
+
+- **Grafana Dashboard**: `http://localhost:8080/dashboard.json` (Ready to import)
+- **Prometheus Alerts**: `http://localhost:8080/alerts.yaml` (Pre-configured alert rules)
+
+Those assets are generated during the docker build process and served by the application, ensuring they are always in sync with the current version of the service. To generate or update the monitoring assets locally, you can use the `jsonnet` CLI:
+
+```bash
+jsonnet -J monitoring/mixin/ monitoring/mixin/mixin.libsonnet -o assets
+```
 
 ## Automation
 
@@ -196,6 +209,8 @@ sudo systemctl start miniflux-auto-read
 ├── config.go      # Configuration and environment variables
 ├── server.go      # HTTP server setup and lifecycle
 ├── handlers.go    # HTTP handlers (healthz, process)
+├── monitoring/    # Jsonnet Mixin for Dashboards & Alerts
+├── assets/        # Generated monitoring assets (embedded)
 ├── go.mod         # Go module definition
 └── README.md      # This file
 ```

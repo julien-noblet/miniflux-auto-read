@@ -2,7 +2,8 @@
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache git ca-certificates jq yq && \
+    go install github.com/google/go-jsonnet/cmd/jsonnet@v0.21.0
 
 # Create a non-root user
 RUN adduser -D -g '' -u 10001 appuser
@@ -17,6 +18,13 @@ RUN go mod download && go mod verify
 
 # Copy source code
 COPY . .
+
+# Regenerate assets from Jsonnet mixin
+RUN mkdir -p assets && \
+    jsonnet monitoring/mixin/mixin.libsonnet > /tmp/mixin.json && \
+    jq -er '.grafanaDashboards["miniflux-auto-read.json"]' /tmp/mixin.json > assets/dashboard.json && \
+    jq -er '.prometheusAlerts' /tmp/mixin.json | yq -P > assets/alerts.yaml && \
+    rm /tmp/mixin.json
 
 # Build the application with optimizations:
 # -pgo=auto: Use default.pgo if available for profile-guided optimization
