@@ -11,24 +11,24 @@ import (
 	c "miniflux.app/v2/client"
 )
 
-// ResponseWriter is a wrapper around http.ResponseWriter to capture the status code
+// ResponseWriter is a wrapper around http.ResponseWriter to capture the status code.
 type ResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-// NewResponseWriter creates a new ResponseWriter
+// NewResponseWriter creates a new ResponseWriter.
 func NewResponseWriter(w http.ResponseWriter) *ResponseWriter {
 	return &ResponseWriter{w, http.StatusOK}
 }
 
-// WriteHeader captures the status code
+// WriteHeader captures the status code.
 func (rw *ResponseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// prometheusMiddleware measures the duration and status of HTTP requests
+// prometheusMiddleware measures the duration and status of HTTP requests.
 func prometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -43,7 +43,7 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// MinifluxClient defines the interface for Miniflux API interactions
+// MinifluxClient defines the interface for Miniflux API interactions.
 type MinifluxClient interface {
 	Me() (*c.User, error)
 	Entries(filter *c.Filter) (*c.EntryResultSet, error)
@@ -51,14 +51,14 @@ type MinifluxClient interface {
 	SaveEntry(entryID int64) error
 }
 
-// Server represents the HTTP server with Miniflux client
+// Server represents the HTTP server with Miniflux client.
 type Server struct {
 	apiURL   string
 	apiToken string
 	client   MinifluxClient
 }
 
-// NewServer creates a new server instance
+// NewServer creates a new server instance.
 func NewServer(config *Config) *Server {
 	client := c.NewClient(config.APIUrl, config.APIToken)
 
@@ -69,7 +69,7 @@ func NewServer(config *Config) *Server {
 	}
 }
 
-// SetupRoutes configures the HTTP routes
+// SetupRoutes configures the HTTP routes.
 func (s *Server) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.healthzHandler)
@@ -78,7 +78,7 @@ func (s *Server) SetupRoutes() http.Handler {
 	return prometheusMiddleware(mux)
 }
 
-// NewHTTPServer creates and configures the HTTP server
+// NewHTTPServer creates and configures the HTTP server.
 func NewHTTPServer(port string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:         ":" + port,
@@ -89,7 +89,7 @@ func NewHTTPServer(port string, handler http.Handler) *http.Server {
 	}
 }
 
-// Start starts the HTTP server
+// Start starts the HTTP server.
 func Start(server *http.Server) {
 	log.Println("Server starting")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -97,14 +97,14 @@ func Start(server *http.Server) {
 	}
 }
 
-// Shutdown gracefully shuts down the HTTP server
+// Shutdown gracefully shuts down the HTTP server.
 func Shutdown(server *http.Server, timeout time.Duration) {
 	log.Println("Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		log.Printf("Server forced to shutdown: %v", err)
 	}
 
 	log.Println("Server stopped")

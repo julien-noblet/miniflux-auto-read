@@ -13,7 +13,7 @@ import (
 	c "miniflux.app/v2/client"
 )
 
-// MockMinifluxClient is a mock of MinifluxClient interface
+// MockMinifluxClient is a mock of MinifluxClient interface.
 type MockMinifluxClient struct {
 	mock.Mock
 }

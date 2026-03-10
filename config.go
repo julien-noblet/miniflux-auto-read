@@ -11,7 +11,7 @@ const (
 	defaultPort = "8080"
 )
 
-// Config holds the application configuration
+// Config holds the application configuration.
 type Config struct {
 	APIUrl   string
 	APIToken string
@@ -19,7 +19,7 @@ type Config struct {
 	Daemon   bool
 }
 
-// LoadConfig loads configuration from environment variables
+// LoadConfig loads configuration from environment variables.
 func LoadConfig() (*Config, error) {
 	apiURL := os.Getenv("MINIFLUX_API_URL")
 	apiToken := os.Getenv("MINIFLUX_API_TOKEN")

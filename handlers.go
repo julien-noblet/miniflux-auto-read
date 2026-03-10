@@ -11,7 +11,7 @@ import (
 	c "miniflux.app/v2/client"
 )
 
-// healthzHandler returns the health status of the application
+// healthzHandler returns the health status of the application.
 func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -55,7 +55,7 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// processEntriesHandler processes unread entries
+// processEntriesHandler processes unread entries.
 func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -19,6 +19,29 @@ linters:
     - gosec
     - lll
     - testifylint
+    - asciicheck
+    - copyloopvar
+    - dogsled
+    - dupl
+    - errname
+    - errorlint
+    - exhaustive
+    - goconst
+    - gocritic
+    - godot
+    - makezero
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nolintlint
+    - prealloc
+    - predeclared
+    - reassign
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - whitespace
 
 issues:
   max-issues-per-linter: 0

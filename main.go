@@ -16,7 +16,7 @@ func main() {
 	}
 }
 
-// Run executes the application logic
+// Run executes the application logic.
 func Run() error {
 	// Load configuration
 	config, err := LoadConfig()
