@@ -15,7 +15,7 @@ Miniflux Auto Read is a companion service for [Miniflux](https://miniflux.app) t
 - 📖 Bulk process unread entries with one API call
 - 🔒 Secure configuration via environment variables
 - 📊 Metrics for Prometheus (at `/metrics`)
-- 📈 Integrated Grafana Dashboard and Prometheus Alerts
+- 📈 Integrated Grafana Dashboard and Prometheus Alerts (provided by the service at `/dashboard.json` and `/alerts.yaml`)
 - 🤖 Daemon mode for continuous operation
 - 📊 Detailed logging and error reporting
 - ⚡ Fast and lightweight (written in Go 1.26 with PGO optimization)
