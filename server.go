@@ -90,7 +90,7 @@ func (s *Server) SetupRoutes() http.Handler {
 	assets, err := fs.Sub(dashboardAssets, "assets")
 	if err != nil {
 		log.Printf("failed to load dashboard assets: %v", err)
-		mux.HandleFunc("/dashboard.json", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/dashboard.json", func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "dashboard assets unavailable", http.StatusInternalServerError)
 		})
 	} else {
@@ -101,7 +101,7 @@ func (s *Server) SetupRoutes() http.Handler {
 	alerts, err := fs.Sub(alertsAssets, "assets")
 	if err != nil {
 		log.Printf("failed to load alerts assets: %v", err)
-		mux.HandleFunc("/alerts.yaml", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/alerts.yaml", func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "alerts assets unavailable", http.StatusInternalServerError)
 		})
 	} else {
