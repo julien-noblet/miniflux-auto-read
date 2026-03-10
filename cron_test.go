@@ -55,7 +55,6 @@ func TestCronInvalidSchedule(t *testing.T) {
 
 func TestCronValidSchedule(t *testing.T) {
 	scheduler := cron.New()
-	
 	// Test standard format
 	_, err := scheduler.AddFunc("*/15 * * * *", func() {})
 	require.NoError(t, err)
