@@ -83,7 +83,15 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Process retrieves unread entries and processes them.
+// It is safe to call concurrently: if a run is already in progress, the call
+// returns immediately with zero counts.
 func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
+	if !s.processing.CompareAndSwap(false, true) {
+		log.Println("Process already running, skipping")
+		return 0, 0, 0
+	}
+	defer s.processing.Store(false)
+
 	start := time.Now()
 	entries, err := s.client.Entries(unreadFilter)
 	MinifluxAPIDurationSeconds.WithLabelValues("entries").Observe(time.Since(start).Seconds())

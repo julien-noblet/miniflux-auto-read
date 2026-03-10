@@ -186,4 +186,20 @@ func TestProcess(t *testing.T) {
 		assert.Equal(t, 1, errs)
 		assert.Equal(t, 1, total)
 	})
+
+	t.Run("Skip if already running", func(t *testing.T) {
+		mockClient := new(MockMinifluxClient)
+		s := &Server{client: mockClient}
+
+		// Simulate a run already in progress.
+		s.processing.Store(true)
+
+		processed, errs, total := s.Process(&c.Filter{})
+
+		assert.Equal(t, 0, processed)
+		assert.Equal(t, 0, errs)
+		assert.Equal(t, 0, total)
+		// The client must not have been called.
+		mockClient.AssertNotCalled(t, "Entries")
+	})
 }
