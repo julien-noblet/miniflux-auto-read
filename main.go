@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -60,7 +61,7 @@ func Run() error {
 			})
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to add cron job with CRON_SCHEDULE %q: %w", config.CronSchedule, err)
 		}
 		scheduler.Start()
 		log.Printf("Cron scheduler started with schedule: %s", config.CronSchedule)
