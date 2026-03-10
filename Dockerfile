@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM golang:1.26-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates
@@ -23,8 +23,9 @@ COPY . .
 # -trimpath: Remove local file system paths from the binary
 # -ldflags: -s -w removes symbol table and debug information
 # GOAMD64=v3: Use modern CPU instructions (AVX/AVX2) for amd64
-RUN if [ "$(go env GOARCH)" = "amd64" ]; then export GOAMD64=v3; fi && \
-    CGO_ENABLED=0 GOOS=linux go build \
+ARG TARGETOS TARGETARCH
+RUN if [ "$TARGETARCH" = "amd64" ]; then export GOAMD64=v3; fi && \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -pgo=auto \
     -trimpath \
     -ldflags="-s -w" \
