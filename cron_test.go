@@ -35,7 +35,6 @@ func TestCronScheduling(t *testing.T) {
 	require.NoError(t, err)
 
 	scheduler.Start()
-	defer scheduler.Stop()
 
 	select {
 	case <-triggered:
@@ -43,6 +42,12 @@ func TestCronScheduling(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for cron job to fire")
 	}
+
+	// Stop the scheduler and wait for any in-flight jobs to finish before
+	// asserting expectations to avoid a race between a concurrent job
+	// execution and AssertExpectations.
+	stopCtx := scheduler.Stop()
+	<-stopCtx.Done()
 
 	mockClient.AssertExpectations(t)
 }
