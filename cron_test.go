@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"testing"
+	"time"
 
 	"github.com/robfig/cron/v3"
 	"github.com/stretchr/testify/mock"
@@ -15,38 +15,35 @@ func TestCronScheduling(t *testing.T) {
 	mockClient := new(MockMinifluxClient)
 	server := &Server{client: mockClient}
 
-	// We expect one call to Entries (to get unread items)
-	// and if entries found, SaveEntry and UpdateEntries.
-	// For this test, let's say there are no entries to keep it simple.
+	// Expect at least one call to Entries when the cron job fires.
 	mockClient.On("Entries", mock.Anything).Return(&c.EntryResultSet{
 		Total:   0,
 		Entries: c.Entries{},
 	}, nil)
 
-	// Create a scheduler with a very fast frequency (every second)
-	// Note: Standard cron doesn't support seconds, but robfig/cron/v3 can if configured.
-	// Here we use the default 5-field parser which is minutes.
-	// So we'll trigger it manually or use a smaller unit if possible.
-	
-	triggered := make(chan bool, 1)
-	
-	scheduler := cron.New()
-	_, err := scheduler.AddFunc("* * * * *", func() {
-		log.Println("Cron triggered in test")
+	triggered := make(chan struct{}, 1)
+
+	// Use a seconds-enabled parser so we can schedule the job to fire every second.
+	scheduler := cron.New(cron.WithSeconds())
+	_, err := scheduler.AddFunc("* * * * * *", func() {
 		server.Process(&c.Filter{Status: c.EntryStatusUnread})
-		triggered <- true
+		select {
+		case triggered <- struct{}{}:
+		default:
+		}
 	})
 	require.NoError(t, err)
 
 	scheduler.Start()
 	defer scheduler.Stop()
 
-	// Since we can't wait a minute in a unit test, we'll verify the logic 
-	// of AddFunc and just ensure the function can be called.
-	
-	// Manual trigger of the cron logic to verify integration with server.Process
-	server.Process(&c.Filter{Status: c.EntryStatusUnread})
-	
+	select {
+	case <-triggered:
+		// Job fired at least once – cron integration works.
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for cron job to fire")
+	}
+
 	mockClient.AssertExpectations(t)
 }
 
