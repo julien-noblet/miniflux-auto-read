@@ -64,7 +64,7 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("Empty cron schedule", func(t *testing.T) {
 		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
 		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
-		_ = os.Unsetenv("CRON_SCHEDULE")
+		_ = os.Setenv("CRON_SCHEDULE", "")
 
 		config, err := LoadConfig()
 		require.NoError(t, err)
