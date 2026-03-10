@@ -3,7 +3,7 @@ FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates jq yq && \
-    go install github.com/google/go-jsonnet/cmd/jsonnet@latest
+    go install github.com/google/go-jsonnet/cmd/jsonnet@v0.21.0
 
 # Create a non-root user
 RUN adduser -D -g '' -u 10001 appuser
