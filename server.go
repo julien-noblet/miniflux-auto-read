@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -53,9 +54,10 @@ type MinifluxClient interface {
 
 // Server represents the HTTP server with Miniflux client.
 type Server struct {
-	apiURL   string
-	apiToken string
-	client   MinifluxClient
+	apiURL     string
+	apiToken   string
+	client     MinifluxClient
+	processing atomic.Bool // guards against concurrent Process calls
 }
 
 // NewServer creates a new server instance.
