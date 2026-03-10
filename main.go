@@ -49,9 +49,10 @@ func Run() error {
 	}
 
 	// Setup Cron Scheduler if CRON_SCHEDULE is defined
+	var scheduler *cron.Cron
 	if config.CronSchedule != "" {
 		utcLocation := time.UTC
-		scheduler := cron.New(cron.WithLocation(utcLocation))
+		scheduler = cron.New(cron.WithLocation(utcLocation))
 		_, err := scheduler.AddFunc(config.CronSchedule, func() {
 			log.Printf("Cron job triggered: %s", config.CronSchedule)
 			server.Process(&c.Filter{
@@ -62,7 +63,6 @@ func Run() error {
 			return err
 		}
 		scheduler.Start()
-		defer scheduler.Stop()
 		log.Printf("Cron scheduler started with schedule: %s", config.CronSchedule)
 	}
 
@@ -70,6 +70,12 @@ func Run() error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+
+	// Stop the cron scheduler and wait for any in-flight jobs to finish
+	if scheduler != nil {
+		ctx := scheduler.Stop()
+		<-ctx.Done()
+	}
 
 	Shutdown(httpServer, 30*time.Second)
 	return nil
