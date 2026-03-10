@@ -1,4 +1,4 @@
-local config = import 'config.libsonnet';
+local config = import '../config.libsonnet';
 
 {
   prometheusAlerts+:: {
