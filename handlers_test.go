@@ -166,6 +166,26 @@ func TestProcess(t *testing.T) {
 		assert.Equal(t, 1, total)
 	})
 
+	testProcessErrors(t)
+
+	t.Run("Skip if already running", func(t *testing.T) {
+		mockClient := new(MockMinifluxClient)
+		s := &Server{client: mockClient}
+
+		// Simulate a run already in progress.
+		s.processing.Store(true)
+
+		processed, errs, total := s.Process(&c.Filter{})
+
+		assert.Equal(t, 0, processed)
+		assert.Equal(t, 0, errs)
+		assert.Equal(t, 0, total)
+		// The client must not have been called.
+		mockClient.AssertNotCalled(t, "Entries")
+	})
+}
+
+func testProcessErrors(t *testing.T) {
 	t.Run("Update entries error", func(t *testing.T) {
 		mockClient := new(MockMinifluxClient)
 		entries := &c.EntryResultSet{
@@ -174,8 +194,6 @@ func TestProcess(t *testing.T) {
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
 		mockClient.On("SaveEntry", int64(1)).Return(nil)
-		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).
-			Return(errors.New("update error")).Maybe()
 		// Correcting expectation for UpdateEntries:
 		mockClient.On("UpdateEntries", []int64{1}, c.EntryStatusRead).Return(errors.New("update error"))
 

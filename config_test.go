@@ -8,19 +8,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadConfig(t *testing.T) {
-	// Original environment restoration
+func setupConfigTestEnv(_ *testing.T) func() {
 	origURL := os.Getenv("MINIFLUX_API_URL")
 	origToken := os.Getenv("MINIFLUX_API_TOKEN")
 	origPort := os.Getenv("PORT")
 	origDaemon := os.Getenv("DAEMON")
-	defer func() {
+	origCron := os.Getenv("CRON_SCHEDULE")
+
+	return func() {
 		_ = os.Setenv("MINIFLUX_API_URL", origURL)
 		_ = os.Setenv("MINIFLUX_API_TOKEN", origToken)
 		_ = os.Setenv("PORT", origPort)
 		_ = os.Setenv("DAEMON", origDaemon)
-	}()
+		_ = os.Setenv("CRON_SCHEDULE", origCron)
+	}
+}
 
+func TestLoadConfig(t *testing.T) {
+	defer setupConfigTestEnv(t)()
+
+	testLoadConfigBasic(t)
+	testLoadConfigCron(t)
+}
+
+func testLoadConfigBasic(t *testing.T) {
 	t.Run("Missing variables", func(t *testing.T) {
 		_ = os.Unsetenv("MINIFLUX_API_URL")
 		_ = os.Unsetenv("MINIFLUX_API_TOKEN")
@@ -35,6 +46,7 @@ func TestLoadConfig(t *testing.T) {
 		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
 		_ = os.Unsetenv("PORT")
 		_ = os.Unsetenv("DAEMON")
+		_ = os.Unsetenv("CRON_SCHEDULE")
 
 		config, err := LoadConfig()
 		require.NoError(t, err)
@@ -49,11 +61,46 @@ func TestLoadConfig(t *testing.T) {
 		_ = os.Setenv("MINIFLUX_API_TOKEN", "another-token")
 		_ = os.Setenv("PORT", "9090")
 		_ = os.Setenv("DAEMON", "true")
+		_ = os.Setenv("CRON_SCHEDULE", "*/15 * * * *")
 
 		config, err := LoadConfig()
 		require.NoError(t, err)
 		assert.Equal(t, "http://miniflux.example.com", config.APIUrl)
 		assert.Equal(t, "9090", config.Port)
 		assert.True(t, config.Daemon)
+		assert.Equal(t, "*/15 * * * *", config.CronSchedule)
+	})
+}
+
+func testLoadConfigCron(t *testing.T) {
+	t.Run("Empty cron schedule", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Unsetenv("CRON_SCHEDULE")
+
+		config, err := LoadConfig()
+		require.NoError(t, err)
+		assert.Empty(t, config.CronSchedule)
+	})
+
+	t.Run("Whitespace-only cron schedule treated as unset", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Setenv("CRON_SCHEDULE", "   ")
+
+		config, err := LoadConfig()
+		require.NoError(t, err)
+		assert.Empty(t, config.CronSchedule)
+	})
+
+	t.Run("Invalid cron schedule returns error", func(t *testing.T) {
+		_ = os.Setenv("MINIFLUX_API_URL", "http://localhost:8080")
+		_ = os.Setenv("MINIFLUX_API_TOKEN", "secret-token")
+		_ = os.Setenv("CRON_SCHEDULE", "not-a-valid-cron")
+
+		config, err := LoadConfig()
+		require.Error(t, err)
+		assert.Nil(t, config)
+		assert.Contains(t, err.Error(), "invalid CRON_SCHEDULE")
 	})
 }

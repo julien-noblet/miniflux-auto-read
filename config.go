@@ -5,6 +5,9 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
+
+	"github.com/robfig/cron/v3"
 )
 
 const (
@@ -13,10 +16,11 @@ const (
 
 // Config holds the application configuration.
 type Config struct {
-	APIUrl   string
-	APIToken string
-	Port     string
-	Daemon   bool
+	APIUrl       string
+	APIToken     string
+	Port         string
+	Daemon       bool
+	CronSchedule string
 }
 
 // LoadConfig loads configuration from environment variables.
@@ -33,12 +37,21 @@ func LoadConfig() (*Config, error) {
 		port = defaultPort
 	}
 
+	cronSchedule := strings.TrimSpace(os.Getenv("CRON_SCHEDULE"))
+	if cronSchedule != "" {
+		parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+		if _, err := parser.Parse(cronSchedule); err != nil {
+			return nil, errors.New("invalid CRON_SCHEDULE: " + err.Error())
+		}
+	}
+
 	log.Println("API token configured")
 
 	return &Config{
-		APIUrl:   apiURL,
-		APIToken: apiToken,
-		Port:     port,
-		Daemon:   os.Getenv("DAEMON") == "true",
+		APIUrl:       apiURL,
+		APIToken:     apiToken,
+		Port:         port,
+		Daemon:       os.Getenv("DAEMON") == "true",
+		CronSchedule: cronSchedule,
 	}, nil
 }
