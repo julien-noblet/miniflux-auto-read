@@ -247,7 +247,7 @@ If you encounter any issues or have questions:
 
 ## Roadmap
 
-- [ ] Docker image on github container registry
+- [X] Docker image on github container registry
 - [ ] Configurable scheduling (built-in cron)
 - [X] Prometheus metrics endpoint
 - [ ] Filter entries by feed or category
