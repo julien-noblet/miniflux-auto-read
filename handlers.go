@@ -105,13 +105,16 @@ func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 	for _, entry := range entries.Entries {
 		log.Printf("Fetching entry %d: %s", entry.ID, entry.Title)
 		startFetch := time.Now()
-		_, err := s.client.FetchEntryOriginalContent(entry.ID)
+		fetchedEntry, err := s.client.FetchEntryOriginalContent(entry.ID)
 		MinifluxAPIDurationSeconds.WithLabelValues("fetch_entry").Observe(time.Since(startFetch).Seconds())
 		if err != nil {
 			log.Printf("Error fetching entry %d: %v", entry.ID, err)
 			EntriesProcessingErrorsTotal.WithLabelValues("fetch_entry").Inc()
 			errors++
 			continue
+		}
+		if fetchedEntry != nil {
+			log.Printf("Fetched original content for entry %d: %s", fetchedEntry.ID, fetchedEntry.Title)
 		}
 
 		log.Printf("Saving entry %d: %s", entry.ID, entry.Title)
