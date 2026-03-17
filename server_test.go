@@ -24,7 +24,7 @@ func TestResponseWriter(t *testing.T) {
 }
 
 func TestPrometheusMiddleware(t *testing.T) {
-	t.Run("MetricsRecorded", func(t *testing.T) {
+	t.Run("StatusCodePropagated", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusAccepted)
 		})
