@@ -63,11 +63,16 @@ func TestServerInternal(t *testing.T) {
 		endpoints := []string{"/metrics", "/dashboard.json", "/alerts.yaml"}
 		for _, ep := range endpoints {
 			req := httptest.NewRequest("GET", ep, nil)
-			rec := httptest.NewRecorder()
-			mux.ServeHTTP(rec, req)
-			// Metrics might return 200, assets might return 404 if not found in test env, 
-			// but we just want to ensure the routes are registered.
-			assert.NotEqual(t, http.StatusNotFound, rec.Code, "Endpoint %s not registered", ep)
+
+			sm, ok := mux.(*http.ServeMux)
+			if !ok {
+				t.Fatalf("expected *http.ServeMux from SetupRoutes, got %T", mux)
+			}
+
+			handler, pattern := sm.Handler(req)
+			// We only care that the route is registered; assets may still return 404 at runtime.
+			assert.NotNil(t, handler, "Endpoint %s not registered", ep)
+			assert.NotEqual(t, "", pattern, "Endpoint %s not registered", ep)
 		}
 	})
 
