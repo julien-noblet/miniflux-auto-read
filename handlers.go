@@ -55,8 +55,8 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// processEntriesHandler processes unread entries.
-func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
+// processUnreadEntriesHandler processes unread entries.
+func (s *Server) processUnreadEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -69,7 +69,7 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	unreadFilter := &c.Filter{
 		Status: c.EntryStatusUnread,
 	}
-	processed, errors, entries := s.Process(unreadFilter)
+	processed, errors, entries := s.ProcessUnreadEntries(unreadFilter)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -80,55 +80,107 @@ func (s *Server) processEntriesHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Process retrieves unread entries and processes them.
+// ProcessUnreadEntries retrieves unread entries and processes them.
 // It is safe to call concurrently: if a run is already in progress, the call
 // returns immediately with zero counts.
-func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
+func (s *Server) ProcessUnreadEntries(unreadFilter *c.Filter) (int, int, int) {
 	if !s.processing.CompareAndSwap(false, true) {
-		log.Println("Process already running, skipping")
+		log.Println("Unread entries processing already running, skipping")
 		return 0, 0, 0
 	}
 	defer s.processing.Store(false)
 
-	start := time.Now()
-	entries, err := s.client.Entries(unreadFilter)
-	MinifluxAPIDurationSeconds.WithLabelValues("entries").Observe(time.Since(start).Seconds())
+	return s.processUnreadEntries(unreadFilter)
+}
+
+func (s *Server) processUnreadEntries(unreadFilter *c.Filter) (int, int, int) {
+	entries, err := s.fetchUnreadEntries(unreadFilter)
 	if err != nil {
-		log.Printf("Error fetching entries: %v", err)
-		EntriesProcessingErrorsTotal.WithLabelValues("fetch_entries").Inc()
 		return 0, 0, 0
 	}
 
 	processed := 0
 	errors := 0
 
-	for _, entry := range entries.Entries {
-		log.Printf("Saving entry %d: %s", entry.ID, entry.Title)
-		startSave := time.Now()
-		err := s.client.SaveEntry(entry.ID)
-		MinifluxAPIDurationSeconds.WithLabelValues("save_entry").Observe(time.Since(startSave).Seconds())
-		if err != nil {
-			log.Printf("Error saving entry %d: %v", entry.ID, err)
-			EntriesProcessingErrorsTotal.WithLabelValues("save_entry").Inc()
+	for _, entry := range entries {
+		if err := s.processEntry(entry); err != nil {
 			errors++
 			continue
 		}
-
-		startUpdate := time.Now()
-		err = s.client.UpdateEntries([]int64{entry.ID}, c.EntryStatusRead)
-		MinifluxAPIDurationSeconds.WithLabelValues("update_entries").Observe(time.Since(startUpdate).Seconds())
-		if err != nil {
-			log.Printf("Error marking entry %d as read: %v", entry.ID, err)
-			EntriesProcessingErrorsTotal.WithLabelValues("mark_read").Inc()
-			errors++
-			continue
-		}
-
 		processed++
 	}
 
 	log.Printf("Processing complete: %d processed, %d errors", processed, errors)
 	EntriesProcessedTotal.Add(float64(processed))
 
-	return processed, errors, len(entries.Entries)
+	return processed, errors, len(entries)
+}
+
+func (s *Server) fetchUnreadEntries(unreadFilter *c.Filter) (c.Entries, error) {
+	start := time.Now()
+	entriesResult, err := s.client.Entries(unreadFilter)
+	MinifluxAPIDurationSeconds.WithLabelValues("entries").Observe(time.Since(start).Seconds())
+	if err != nil {
+		log.Printf("Error fetching entries: %v", err)
+		EntriesProcessingErrorsTotal.WithLabelValues("fetch_entries").Inc()
+		return nil, err
+	}
+
+	return entriesResult.Entries, nil
+}
+
+func (s *Server) processEntry(entry *c.Entry) error {
+	if err := s.fetchEntryOriginalContent(entry); err != nil {
+		return err
+	}
+
+	if err := s.saveEntry(entry); err != nil {
+		return err
+	}
+
+	return s.markEntryAsRead(entry)
+}
+
+func (s *Server) fetchEntryOriginalContent(entry *c.Entry) error {
+	log.Printf("Fetching entry %d: %s", entry.ID, entry.Title)
+	startFetch := time.Now()
+	fetchedEntry, err := s.client.FetchEntryOriginalContent(entry.ID)
+	MinifluxAPIDurationSeconds.WithLabelValues("fetch_entry").Observe(time.Since(startFetch).Seconds())
+	if err != nil {
+		log.Printf("Error fetching entry %d: %v", entry.ID, err)
+		EntriesProcessingErrorsTotal.WithLabelValues("fetch_entry").Inc()
+		return err
+	}
+	if fetchedEntry != "" {
+		log.Printf("Fetched original content for entry %d: %s", entry.ID, fetchedEntry)
+	}
+
+	return nil
+}
+
+func (s *Server) saveEntry(entry *c.Entry) error {
+	log.Printf("Saving entry %d: %s", entry.ID, entry.Title)
+	startSave := time.Now()
+	err := s.client.SaveEntry(entry.ID)
+	MinifluxAPIDurationSeconds.WithLabelValues("save_entry").Observe(time.Since(startSave).Seconds())
+	if err != nil {
+		log.Printf("Error saving entry %d: %v", entry.ID, err)
+		EntriesProcessingErrorsTotal.WithLabelValues("save_entry").Inc()
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) markEntryAsRead(entry *c.Entry) error {
+	startUpdate := time.Now()
+	err := s.client.UpdateEntries([]int64{entry.ID}, c.EntryStatusRead)
+	MinifluxAPIDurationSeconds.WithLabelValues("update_entries").Observe(time.Since(startUpdate).Seconds())
+	if err != nil {
+		log.Printf("Error marking entry %d as read: %v", entry.ID, err)
+		EntriesProcessingErrorsTotal.WithLabelValues("mark_read").Inc()
+		return err
+	}
+
+	return nil
 }

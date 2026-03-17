@@ -34,6 +34,11 @@ func (m *MockMinifluxClient) Entries(filter *c.Filter) (*c.EntryResultSet, error
 	return args.Get(0).(*c.EntryResultSet), args.Error(1)
 }
 
+func (m *MockMinifluxClient) FetchEntryOriginalContent(entryID int64) (string, error) {
+	args := m.Called(entryID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockMinifluxClient) UpdateEntries(entryIDs []int64, status string) error {
 	args := m.Called(entryIDs, status)
 	return args.Error(0)
@@ -93,7 +98,7 @@ func TestHealthzHandler(t *testing.T) {
 	})
 }
 
-func TestProcessEntriesHandler(t *testing.T) {
+func TestProcessUnreadEntriesHandler(t *testing.T) {
 	t.Run("Successful processing", func(t *testing.T) {
 		mockClient := new(MockMinifluxClient)
 
@@ -105,13 +110,14 @@ func TestProcessEntriesHandler(t *testing.T) {
 		}
 
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(123)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(123)).Return(nil)
 		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).Return(nil)
 
 		s := &Server{client: mockClient}
 		req := httptest.NewRequestWithContext(t.Context(), "POST", "/process", nil)
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(s.processEntriesHandler)
+		handler := http.HandlerFunc(s.processUnreadEntriesHandler)
 
 		handler.ServeHTTP(rr, req)
 
@@ -128,7 +134,7 @@ func TestProcessEntriesHandler(t *testing.T) {
 		s := &Server{}
 		req := httptest.NewRequestWithContext(t.Context(), "GET", "/process", nil)
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(s.processEntriesHandler)
+		handler := http.HandlerFunc(s.processUnreadEntriesHandler)
 
 		handler.ServeHTTP(rr, req)
 
@@ -136,13 +142,13 @@ func TestProcessEntriesHandler(t *testing.T) {
 	})
 }
 
-func TestProcess(t *testing.T) {
+func TestProcessUnreadEntries(t *testing.T) {
 	t.Run("Fetching entries error", func(t *testing.T) {
 		mockClient := new(MockMinifluxClient)
 		mockClient.On("Entries", mock.Anything).Return(nil, errors.New("fetch error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 0, errs)
@@ -156,10 +162,11 @@ func TestProcess(t *testing.T) {
 			Entries: c.Entries{{ID: 1, Title: "Error Case"}},
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(1)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(1)).Return(errors.New("save error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 1, errs)
@@ -175,7 +182,7 @@ func TestProcess(t *testing.T) {
 		// Simulate a run already in progress.
 		s.processing.Store(true)
 
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 0, errs)
@@ -193,12 +200,13 @@ func testProcessErrors(t *testing.T) {
 			Entries: c.Entries{{ID: 1, Title: "Update Error Case"}},
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(1)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(1)).Return(nil)
 		// Correcting expectation for UpdateEntries:
 		mockClient.On("UpdateEntries", []int64{1}, c.EntryStatusRead).Return(errors.New("update error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 1, errs)

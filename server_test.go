@@ -1,12 +1,44 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestResponseWriter(t *testing.T) {
+	t.Run("CaptureStatusCode", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		rw := NewResponseWriter(rec)
+
+		rw.WriteHeader(http.StatusNotFound)
+		_, _ = rw.Write([]byte("not found"))
+
+		assert.Equal(t, http.StatusNotFound, rw.statusCode)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+		assert.Equal(t, "not found", rec.Body.String())
+	})
+}
+
+func TestPrometheusMiddleware(t *testing.T) {
+	t.Run("StatusCodePropagated", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		})
+
+		mw := prometheusMiddleware(handler)
+		req := httptest.NewRequestWithContext(context.Background(), "GET", "/test", nil)
+		rec := httptest.NewRecorder()
+
+		mw.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusAccepted, rec.Code)
+	})
+}
 
 func TestServerInternal(t *testing.T) {
 	config := &Config{
@@ -27,6 +59,22 @@ func TestServerInternal(t *testing.T) {
 		s := NewServer(config)
 		mux := s.SetupRoutes()
 		assert.NotNil(t, mux)
+
+		// Test static endpoints
+		endpoints := []string{"/metrics", "/dashboard.json", "/alerts.yaml"}
+		for _, ep := range endpoints {
+			req := httptest.NewRequestWithContext(context.Background(), "GET", ep, nil)
+
+			sm, ok := mux.(*http.ServeMux)
+			if !ok {
+				t.Fatalf("expected *http.ServeMux from SetupRoutes, got %T", mux)
+			}
+
+			handler, pattern := sm.Handler(req)
+			// We only care that the route is registered; assets may still return 404 at runtime.
+			assert.NotNil(t, handler, "Endpoint %s not registered", ep)
+			assert.NotEmpty(t, pattern, "Endpoint %s not registered", ep)
+		}
 	})
 
 	t.Run("NewHTTPServer", func(t *testing.T) {

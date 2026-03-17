@@ -56,6 +56,7 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 type MinifluxClient interface {
 	Me() (*c.User, error)
 	Entries(filter *c.Filter) (*c.EntryResultSet, error)
+	FetchEntryOriginalContent(entryID int64) (string, error)
 	UpdateEntries(entryIDs []int64, status string) error
 	SaveEntry(entryID int64) error
 }
@@ -65,7 +66,7 @@ type Server struct {
 	apiURL     string
 	apiToken   string
 	client     MinifluxClient
-	processing atomic.Bool // guards against concurrent Process calls
+	processing atomic.Bool // guards against concurrent ProcessUnreadEntries calls
 }
 
 // NewServer creates a new server instance.
@@ -83,7 +84,7 @@ func NewServer(config *Config) *Server {
 func (s *Server) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.healthzHandler)
-	mux.HandleFunc("/process", s.processEntriesHandler)
+	mux.HandleFunc("/process", s.processUnreadEntriesHandler)
 	mux.Handle("/metrics", promhttp.Handler())
 
 	// Expose Grafana dashboard JSON
