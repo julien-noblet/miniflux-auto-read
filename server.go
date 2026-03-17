@@ -56,6 +56,7 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 type MinifluxClient interface {
 	Me() (*c.User, error)
 	Entries(filter *c.Filter) (*c.EntryResultSet, error)
+	FetchEntryOriginalContent(entryID int64) (string, error)
 	UpdateEntries(entryIDs []int64, status string) error
 	SaveEntry(entryID int64) error
 }

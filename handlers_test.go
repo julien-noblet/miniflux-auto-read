@@ -34,6 +34,11 @@ func (m *MockMinifluxClient) Entries(filter *c.Filter) (*c.EntryResultSet, error
 	return args.Get(0).(*c.EntryResultSet), args.Error(1)
 }
 
+func (m *MockMinifluxClient) FetchEntryOriginalContent(entryID int64) (string, error) {
+	args := m.Called(entryID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockMinifluxClient) UpdateEntries(entryIDs []int64, status string) error {
 	args := m.Called(entryIDs, status)
 	return args.Error(0)
@@ -105,6 +110,7 @@ func TestProcessEntriesHandler(t *testing.T) {
 		}
 
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(123)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(123)).Return(nil)
 		mockClient.On("UpdateEntries", []int64{123}, c.EntryStatusRead).Return(nil)
 
@@ -156,6 +162,7 @@ func TestProcess(t *testing.T) {
 			Entries: c.Entries{{ID: 1, Title: "Error Case"}},
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(1)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(1)).Return(errors.New("save error"))
 
 		s := &Server{client: mockClient}
@@ -193,6 +200,7 @@ func testProcessErrors(t *testing.T) {
 			Entries: c.Entries{{ID: 1, Title: "Update Error Case"}},
 		}
 		mockClient.On("Entries", mock.Anything).Return(entries, nil)
+		mockClient.On("FetchEntryOriginalContent", int64(1)).Return("content", nil)
 		mockClient.On("SaveEntry", int64(1)).Return(nil)
 		// Correcting expectation for UpdateEntries:
 		mockClient.On("UpdateEntries", []int64{1}, c.EntryStatusRead).Return(errors.New("update error"))
