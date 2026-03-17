@@ -113,8 +113,8 @@ func (s *Server) Process(unreadFilter *c.Filter) (int, int, int) {
 			errors++
 			continue
 		}
-		if fetchedEntry != nil {
-			log.Printf("Fetched original content for entry %d: %s", fetchedEntry.ID, fetchedEntry.Title)
+		if fetchedEntry != "" {
+			log.Printf("Fetched original content for entry %d: %s", entry.ID, fetchedEntry)
 		}
 
 		log.Printf("Saving entry %d: %s", entry.ID, entry.Title)
