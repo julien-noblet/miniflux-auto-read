@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +31,7 @@ func TestPrometheusMiddleware(t *testing.T) {
 		})
 
 		mw := prometheusMiddleware(handler)
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequestWithContext(context.Background(), "GET", "/test", nil)
 		rec := httptest.NewRecorder()
 
 		mw.ServeHTTP(rec, req)
@@ -62,7 +63,7 @@ func TestServerInternal(t *testing.T) {
 		// Test static endpoints
 		endpoints := []string{"/metrics", "/dashboard.json", "/alerts.yaml"}
 		for _, ep := range endpoints {
-			req := httptest.NewRequest("GET", ep, nil)
+			req := httptest.NewRequestWithContext(context.Background(), "GET", ep, nil)
 
 			sm, ok := mux.(*http.ServeMux)
 			if !ok {
@@ -72,7 +73,7 @@ func TestServerInternal(t *testing.T) {
 			handler, pattern := sm.Handler(req)
 			// We only care that the route is registered; assets may still return 404 at runtime.
 			assert.NotNil(t, handler, "Endpoint %s not registered", ep)
-			assert.NotEqual(t, "", pattern, "Endpoint %s not registered", ep)
+			assert.NotEmpty(t, pattern, "Endpoint %s not registered", ep)
 		}
 	})
 

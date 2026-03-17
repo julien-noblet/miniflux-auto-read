@@ -109,7 +109,7 @@ func TestIntegrationWithMiniflux(t *testing.T) {
 
 		req := httptest.NewRequestWithContext(t.Context(), "POST", "/process", nil)
 		rr := httptest.NewRecorder()
-		handleProcess := http.HandlerFunc(s.processEntriesHandler)
+		handleProcess := http.HandlerFunc(s.processUnreadEntriesHandler)
 		handleProcess.ServeHTTP(rr, req)
 		assert.Equal(t, http.StatusOK, rr.Code)
 		t.Logf("Process response: %s", rr.Body.String())

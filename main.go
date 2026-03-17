@@ -38,10 +38,10 @@ func Run() error {
 	// Start server in background
 	go Start(httpServer)
 
-	// If --daemon isn't set, processEntriesHandler will be called once before shutdown
+	// If --daemon isn't set, processUnreadEntriesHandler will be called once before shutdown
 	if !config.Daemon {
-		// Call processEntriesHandler
-		server.Process(&c.Filter{
+		// Call processUnreadEntriesHandler
+		server.ProcessUnreadEntries(&c.Filter{
 			Status: c.EntryStatusUnread,
 		})
 
@@ -56,7 +56,7 @@ func Run() error {
 		scheduler = cron.New(cron.WithLocation(utcLocation))
 		_, err := scheduler.AddFunc(config.CronSchedule, func() {
 			log.Printf("Cron job triggered: %s", config.CronSchedule)
-			server.Process(&c.Filter{
+			server.ProcessUnreadEntries(&c.Filter{
 				Status: c.EntryStatusUnread,
 			})
 		})

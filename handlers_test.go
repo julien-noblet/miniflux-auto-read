@@ -98,7 +98,7 @@ func TestHealthzHandler(t *testing.T) {
 	})
 }
 
-func TestProcessEntriesHandler(t *testing.T) {
+func TestProcessUnreadEntriesHandler(t *testing.T) {
 	t.Run("Successful processing", func(t *testing.T) {
 		mockClient := new(MockMinifluxClient)
 
@@ -117,7 +117,7 @@ func TestProcessEntriesHandler(t *testing.T) {
 		s := &Server{client: mockClient}
 		req := httptest.NewRequestWithContext(t.Context(), "POST", "/process", nil)
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(s.processEntriesHandler)
+		handler := http.HandlerFunc(s.processUnreadEntriesHandler)
 
 		handler.ServeHTTP(rr, req)
 
@@ -134,7 +134,7 @@ func TestProcessEntriesHandler(t *testing.T) {
 		s := &Server{}
 		req := httptest.NewRequestWithContext(t.Context(), "GET", "/process", nil)
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(s.processEntriesHandler)
+		handler := http.HandlerFunc(s.processUnreadEntriesHandler)
 
 		handler.ServeHTTP(rr, req)
 
@@ -142,13 +142,13 @@ func TestProcessEntriesHandler(t *testing.T) {
 	})
 }
 
-func TestProcess(t *testing.T) {
+func TestProcessUnreadEntries(t *testing.T) {
 	t.Run("Fetching entries error", func(t *testing.T) {
 		mockClient := new(MockMinifluxClient)
 		mockClient.On("Entries", mock.Anything).Return(nil, errors.New("fetch error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 0, errs)
@@ -166,7 +166,7 @@ func TestProcess(t *testing.T) {
 		mockClient.On("SaveEntry", int64(1)).Return(errors.New("save error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 1, errs)
@@ -182,7 +182,7 @@ func TestProcess(t *testing.T) {
 		// Simulate a run already in progress.
 		s.processing.Store(true)
 
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 0, errs)
@@ -206,7 +206,7 @@ func testProcessErrors(t *testing.T) {
 		mockClient.On("UpdateEntries", []int64{1}, c.EntryStatusRead).Return(errors.New("update error"))
 
 		s := &Server{client: mockClient}
-		processed, errs, total := s.Process(&c.Filter{})
+		processed, errs, total := s.ProcessUnreadEntries(&c.Filter{})
 
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, 1, errs)

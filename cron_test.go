@@ -26,7 +26,7 @@ func TestCronScheduling(t *testing.T) {
 	// Use a seconds-enabled parser so we can schedule the job to fire every second.
 	scheduler := cron.New(cron.WithSeconds())
 	_, err := scheduler.AddFunc("* * * * * *", func() {
-		server.Process(&c.Filter{Status: c.EntryStatusUnread})
+		server.ProcessUnreadEntries(&c.Filter{Status: c.EntryStatusUnread})
 		select {
 		case triggered <- struct{}{}:
 		default:
